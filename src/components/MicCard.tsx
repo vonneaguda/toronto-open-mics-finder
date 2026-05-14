@@ -1,3 +1,4 @@
+import { useId, useState } from 'react'
 import type { Mic } from '../lib/normalize'
 
 function isInstagramUrl(url: string): boolean {
@@ -9,7 +10,6 @@ function isInstagramUrl(url: string): boolean {
   }
 }
 
-/** Display handle from instagram.com/{handle} (skips /p/, /reel/, etc.) */
 function instagramHandleFromUrl(url: string): string {
   try {
     const u = new URL(url)
@@ -49,12 +49,85 @@ function linkLabel(url: string): string {
   }
 }
 
-function InstagramIcon({ className }: { className?: string }) {
+function ListIcon({ className }: { className?: string }) {
   return (
     <svg
       className={className}
-      width={20}
-      height={20}
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  )
+}
+
+function BucketIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M4 10h16v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8z" />
+      <path d="M8 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4" />
+    </svg>
+  )
+}
+
+function RainbowIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M4 16c2-4 6-6 8-6s6 2 8 6"
+        stroke="#ef4444"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+      <path
+        d="M6 16c1.5-3 4-4.5 6-4.5s4.5 1.5 6 4.5"
+        stroke="#f97316"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+      <path
+        d="M8 16c1-2 2.5-3 4-3s3 1 4 3"
+        stroke="#eab308"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function InstagramGlyph({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width={14}
+      height={14}
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden
@@ -64,28 +137,46 @@ function InstagramIcon({ className }: { className?: string }) {
   )
 }
 
-function DirectionsIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width={20}
-      height={20}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <polygon points="3 11 22 2 13 21 11 13 3 11" />
-    </svg>
-  )
+function extractFormat(notes: string): 'list' | 'bucket' | null {
+  if (!notes) return null
+  const lower = notes.toLowerCase()
+  if (
+    lower.includes('sign-up list') ||
+    lower.includes('sign up list') ||
+    /\blist\b/.test(lower) ||
+    lower.includes('lottery')
+  ) {
+    if (lower.includes('bucket')) return 'bucket'
+    return 'list'
+  }
+  if (
+    lower.includes('bucket') ||
+    lower.includes('draw') ||
+    lower.includes('random order')
+  ) {
+    return 'bucket'
+  }
+  return null
 }
 
-type Props = { mic: Mic }
+function producerParts(name: string): string[] {
+  return name
+    .split(/[,/&\n]+/g)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
 
-export function MicCard({ mic }: Props) {
+type Props = {
+  mic: Mic
+  index: number
+  /** Shown after title, e.g. May 24 — for dated future mics */
+  dateQualifier?: string | null
+}
+
+export function MicCard({ mic, index, dateQualifier }: Props) {
+  const [expanded, setExpanded] = useState(false)
+  const panelId = useId()
+
   const igUrls = [
     ...new Set([
       ...mic.instagramUrls,
@@ -96,167 +187,154 @@ export function MicCard({ mic }: Props) {
 
   const dest = directionsDestination(mic)
   const canDirections = Boolean(dest)
+  const format = extractFormat(mic.extraNotes)
+  const producers = producerParts(mic.producerName)
+  const lgbtqPriority = /\b(lgbtq?|2slgbtq|queer|pride)\b/i.test(
+    mic.extraNotes ?? '',
+  )
 
-  const hasActions = canDirections || igUrls.length > 0 || otherUrls.length > 0
+  const title =
+    dateQualifier && dateQualifier.length > 0
+      ? `${mic.showName} (${dateQualifier})`
+      : mic.showName
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white text-left shadow-sm ring-1 ring-black/[0.03] dark:border-zinc-700 dark:bg-zinc-900 dark:ring-white/[0.05]">
-      {/* Header */}
-      <div className="border-b border-zinc-100 px-4 pb-3 pt-4 dark:border-zinc-800">
-        <div className="flex flex-wrap items-start justify-between gap-2 gap-y-1">
-          <h2 className="min-w-0 flex-1 text-lg font-semibold leading-snug tracking-tight text-zinc-900 dark:text-zinc-50">
-            {mic.showName}
-          </h2>
-          <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-            <span
-              className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-900 dark:bg-violet-950/80 dark:text-violet-200"
-              title={`Listed under the “${mic.sheetTabDay}” tab in the spreadsheet`}
-            >
-              {mic.sheetTabDay}
-            </span>
-            {mic.status ? (
-              <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                {mic.status}
+    <article className="overflow-hidden rounded-2xl border border-zinc-900/15 bg-zinc-100 text-left dark:border-zinc-600 dark:bg-zinc-900/80">
+      <button
+        type="button"
+        className="flex w-full items-start gap-3 p-4 text-left transition hover:bg-zinc-200/60 dark:hover:bg-zinc-800/80"
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        onClick={() => setExpanded((e) => !e)}
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-sm font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
+          {index + 1}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[15px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50">
+            {title}
+          </h3>
+          <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
+            {mic.venueName}
+          </p>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            {format === 'list' ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-900/20 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200">
+                <ListIcon className="opacity-70" />
+                List
+              </span>
+            ) : null}
+            {format === 'bucket' ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-900/20 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200">
+                <BucketIcon className="opacity-70" />
+                Bucket
+              </span>
+            ) : null}
+            {lgbtqPriority ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-900/20 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200">
+                <RainbowIcon />
+                LGBTQ+ priority
               </span>
             ) : null}
           </div>
         </div>
 
-        {/* Location — scan-first */}
-        {(mic.venueName || mic.venueAddress) && (
-          <div className="mt-3">
-            {mic.venueName ? (
-              <p className="font-semibold text-zinc-800 dark:text-zinc-100">
-                {mic.venueName}
-              </p>
+        <div className="shrink-0 text-right">
+          <div className="text-sm tabular-nums text-zinc-900 dark:text-zinc-50">
+            {mic.signUpTime ? (
+              <div>
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                  Sign up
+                </span>
+                {mic.signUpTime}
+              </div>
             ) : null}
-            {mic.venueAddress ? (
-              <p className="mt-0.5 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                {mic.venueAddress}
-              </p>
-            ) : null}
-            {mic.regionLabel ? (
-              <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-500">
-                {mic.regionLabel}
-              </p>
+            {mic.showtimeRaw ? (
+              <div className={mic.signUpTime ? 'mt-1.5' : ''}>
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                  Starts
+                </span>
+                {mic.showtimeRaw}
+              </div>
             ) : null}
           </div>
-        )}
-      </div>
+        </div>
+      </button>
 
-      {/* Quick facts — time-first for comics */}
-      {(mic.showtimeRaw ||
-        mic.signUpTime ||
-        mic.frequencyRaw ||
-        mic.producerName) && (
-        <div className="grid gap-3 px-4 py-3 sm:grid-cols-2">
-          {(mic.showtimeRaw || mic.signUpTime) && (
-            <div className="flex flex-wrap gap-x-6 gap-y-2 sm:col-span-2">
-              {mic.showtimeRaw ? (
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                    Showtime
-                  </p>
-                  <p className="mt-0.5 text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {mic.showtimeRaw}
-                  </p>
-                </div>
-              ) : null}
-              {mic.signUpTime ? (
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                    Sign-up
-                  </p>
-                  <p className="mt-0.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    {mic.signUpTime}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          )}
-          {mic.frequencyRaw ? (
-            <div className="sm:col-span-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                Schedule
+      {expanded ? (
+        <div
+          id={panelId}
+          className="space-y-3 border-t border-zinc-900/10 px-4 pb-4 pt-3 text-sm dark:border-zinc-700"
+        >
+          {producers.length > 0 ? (
+            <div>
+              <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                Producer{producers.length > 1 ? 's' : ''}
               </p>
-              <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-                {mic.frequencyRaw}
+              <p className="mt-1 text-zinc-800 dark:text-zinc-200">
+                {producers.join(' · ')}
               </p>
             </div>
           ) : null}
-          {mic.producerName ? (
-            <div className="sm:col-span-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                Producer
+
+          {igUrls.length > 0 || otherUrls.length > 0 || canDirections ? (
+            <div>
+              <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                Socials
               </p>
-              <p className="mt-0.5 whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">
-                {mic.producerName}
-              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {igUrls.map((url) => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  >
+                    <InstagramGlyph className="opacity-90" />
+                    @{instagramHandleFromUrl(url)}
+                  </a>
+                ))}
+                {otherUrls.map((url) => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-zinc-900/20 bg-white px-3 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200"
+                  >
+                    {linkLabel(url)}
+                  </a>
+                ))}
+              </div>
             </div>
           ) : null}
-        </div>
-      )}
 
-      {mic.extraNotes ? (
-        <div className="border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-            Notes
-          </p>
-          <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-            {mic.extraNotes}
-          </p>
-        </div>
-      ) : null}
-
-      {/* Actions */}
-      {hasActions ? (
-        <div className="flex flex-col gap-2 border-t border-zinc-100 bg-zinc-50/80 px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
-          <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-            Links
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {canDirections ? (
+          {canDirections ? (
+            <p>
               <a
                 href={googleMapsDirectionsHref(dest)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 min-w-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 active:bg-zinc-950 sm:flex-initial dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-                aria-label={`Get directions to ${dest}`}
+                className="text-sm font-medium text-zinc-900 underline decoration-zinc-400 underline-offset-2 dark:text-zinc-100"
               >
-                <DirectionsIcon className="shrink-0 opacity-90" />
                 Directions
               </a>
-            ) : null}
+            </p>
+          ) : null}
 
-            {igUrls.map((url) => {
-              const handle = instagramHandleFromUrl(url)
-              return (
-                <a
-                  key={url}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-11 min-w-[44px] items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 active:brightness-95"
-                  aria-label={`@${handle} on Instagram`}
-                >
-                  <InstagramIcon className="shrink-0 opacity-95" />
-                  <span className="tabular-nums">@{handle}</span>
-                </a>
-              )
-            })}
-
-            {otherUrls.map((url) => (
-              <a
-                key={url}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 active:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                {linkLabel(url)}
-              </a>
-            ))}
-          </div>
+          {mic.extraNotes.trim() ? (
+            <div>
+              <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                Notes
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">
+                {mic.extraNotes}
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </article>

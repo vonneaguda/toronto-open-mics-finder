@@ -9,7 +9,7 @@ type Props = {
 export function DayPicker({ selectedDay, todayToronto, onChange }: Props) {
   return (
     <div
-      className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:justify-center md:overflow-visible"
+      className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       role="tablist"
       aria-label="Weekday"
     >
@@ -25,20 +25,20 @@ export function DayPicker({ selectedDay, todayToronto, onChange }: Props) {
             aria-label={long}
             onClick={() => onChange(day)}
             className={[
-              'shrink-0 rounded-full px-4 py-2 text-sm font-medium transition',
+              'shrink-0 rounded-full border px-3.5 py-2 text-sm font-medium transition',
               active
-                ? 'bg-violet-600 text-white shadow-md shadow-violet-900/20'
-                : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600',
-              isToday && !active
-                ? 'ring-2 ring-violet-400 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-900'
-                : '',
+                ? 'border-transparent bg-zinc-200 text-zinc-900 dark:bg-zinc-700 dark:text-zinc-50'
+                : 'border-zinc-900/25 bg-white text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900',
             ].join(' ')}
           >
-            <span className="md:hidden">{short}</span>
-            <span className="hidden md:inline">{long}</span>
-            {isToday ? (
-              <span className="ml-1 text-xs opacity-80">• today</span>
-            ) : null}
+            <span className="md:hidden">
+              {short}
+              {isToday ? ' (today)' : ''}
+            </span>
+            <span className="hidden md:inline">
+              {long}
+              {isToday ? ' (today)' : ''}
+            </span>
           </button>
         )
       })}
