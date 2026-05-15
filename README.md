@@ -1,4 +1,4 @@
-# Toronto open mics finder
+# PocketMic
 
 Responsive web app for comedians: browse Toronto-area open mics by weekday (defaults to **today** in **America/Toronto** time), open Instagram and other links from the sheet, and see venues on a map (addresses geocoded via OpenStreetMap Nominatim, cached in the browser).
 
