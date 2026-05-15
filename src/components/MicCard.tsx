@@ -168,12 +168,11 @@ function producerParts(name: string): string[] {
 
 type Props = {
   mic: Mic
-  index: number
   /** Shown after title, e.g. May 24 — for dated future mics */
   dateQualifier?: string | null
 }
 
-export function MicCard({ mic, index, dateQualifier }: Props) {
+export function MicCard({ mic, dateQualifier }: Props) {
   const [expanded, setExpanded] = useState(false)
   const panelId = useId()
 
@@ -202,15 +201,11 @@ export function MicCard({ mic, index, dateQualifier }: Props) {
     <article className="overflow-hidden rounded-2xl border border-zinc-900/15 bg-zinc-100 text-left dark:border-zinc-600 dark:bg-zinc-900/80">
       <button
         type="button"
-        className="flex w-full items-start gap-3 p-4 text-left transition hover:bg-zinc-200/60 dark:hover:bg-zinc-800/80"
+        className="flex w-full items-start gap-4 p-4 text-left transition hover:bg-zinc-200/60 dark:hover:bg-zinc-800/80"
         aria-expanded={expanded}
         aria-controls={panelId}
         onClick={() => setExpanded((e) => !e)}
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-sm font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
-          {index + 1}
-        </div>
-
         <div className="min-w-0 flex-1">
           <h3 className="text-[15px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50">
             {title}
@@ -279,7 +274,7 @@ export function MicCard({ mic, index, dateQualifier }: Props) {
             </div>
           ) : null}
 
-          {igUrls.length > 0 || otherUrls.length > 0 || canDirections ? (
+          {igUrls.length > 0 || otherUrls.length > 0 ? (
             <div>
               <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                 Socials
@@ -312,19 +307,6 @@ export function MicCard({ mic, index, dateQualifier }: Props) {
             </div>
           ) : null}
 
-          {canDirections ? (
-            <p>
-              <a
-                href={googleMapsDirectionsHref(dest)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium text-zinc-900 underline decoration-zinc-400 underline-offset-2 dark:text-zinc-100"
-              >
-                Directions
-              </a>
-            </p>
-          ) : null}
-
           {mic.extraNotes.trim() ? (
             <div>
               <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
@@ -334,6 +316,17 @@ export function MicCard({ mic, index, dateQualifier }: Props) {
                 {mic.extraNotes}
               </p>
             </div>
+          ) : null}
+
+          {canDirections ? (
+            <a
+              href={googleMapsDirectionsHref(dest)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="-mx-4 mt-3 flex w-[calc(100%+2rem)] max-w-none items-center justify-center rounded-xl border border-zinc-900/25 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-800/80"
+            >
+              Directions
+            </a>
           ) : null}
         </div>
       ) : null}

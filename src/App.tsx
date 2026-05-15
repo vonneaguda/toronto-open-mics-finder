@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import 'leaflet/dist/leaflet.css'
 import { DayPicker } from './components/DayPicker'
 import { MicCard } from './components/MicCard'
-import { MicMap } from './components/MicMap'
 import { loadOpenMics } from './lib/fetchSheet'
 import { micMatchesDay } from './lib/normalize'
 import type { Mic } from './lib/normalize'
@@ -11,9 +9,6 @@ import {
   formatMicEventDateLabel,
 } from './lib/micCategorization'
 import { getTorontoTodayYmd, getTorontoWeekdayNow } from './lib/torontoTime'
-import { useMicCoordinates } from './hooks/useMicCoordinates'
-
-type Panel = 'list' | 'map'
 
 function torontoMetroFilter(mic: Mic, includeOutside: boolean): boolean {
   if (includeOutside) return true
@@ -39,6 +34,27 @@ function FilterFunnelIcon({ className }: { className?: string }) {
   )
 }
 
+type SortMode = 'time' | 'alpha'
+
+function sortMicList(mics: Mic[], mode: SortMode): Mic[] {
+  const copy = [...mics]
+  if (mode === 'alpha') {
+    copy.sort((a, b) =>
+      a.showName.localeCompare(b.showName, undefined, { sensitivity: 'base' }),
+    )
+  } else {
+    copy.sort((a, b) => {
+      const ta = a.sortMinutes ?? Infinity
+      const tb = b.sortMinutes ?? Infinity
+      if (ta !== tb) return ta - tb
+      return a.showName.localeCompare(b.showName, undefined, {
+        sensitivity: 'base',
+      })
+    })
+  }
+  return copy
+}
+
 export default function App() {
   const [loadState, setLoadState] = useState<Awaited<
     ReturnType<typeof loadOpenMics>
@@ -47,8 +63,8 @@ export default function App() {
   const todayYmd = useMemo(() => getTorontoTodayYmd(), [])
   const [selectedDay, setSelectedDay] = useState(todayToronto)
   const [includeOutside, setIncludeOutside] = useState(false)
-  const [panel, setPanel] = useState<Panel>('list')
   const [filterMenuOpen, setFilterMenuOpen] = useState(false)
+  const [sortMode, setSortMode] = useState<SortMode>('time')
 
   useEffect(() => {
     let cancelled = false
@@ -76,7 +92,14 @@ export default function App() {
     return categorizeMics(dayMics, todayYmd)
   }, [dayMics, todayYmd])
 
-  const { coordsById, pending: geoPending } = useMicCoordinates(dayMics)
+  const sortedWeeklyMics = useMemo(
+    () => sortMicList(weeklyMics, sortMode),
+    [weeklyMics, sortMode],
+  )
+  const sortedFutureMics = useMemo(
+    () => sortMicList(futureMics, sortMode),
+    [futureMics, sortMode],
+  )
 
   const weekdayName =
     [
@@ -91,50 +114,20 @@ export default function App() {
 
   const primaryListHeading =
     selectedDay === todayToronto
-      ? "Today's mics"
-      : `${weekdayName}'s mics`
+      ? `Today's ${weekdayName} mics`
+      : `${weekdayName} mics`
 
   return (
     <div className="min-h-svh bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
       <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
-        <div className="mx-auto flex max-w-lg items-start justify-between gap-3 md:max-w-6xl">
-          <div>
-            <h1 className="text-lg font-bold leading-tight tracking-tight md:text-xl">
-              Toronto open mic finder
-            </h1>
-            <p className="mt-1 hidden max-w-md text-xs text-zinc-500 dark:text-zinc-400 md:block md:text-sm">
-              Listings from the community spreadsheet · defaults to today
-              (Toronto time)
-            </p>
-          </div>
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-900/20 bg-white px-3 py-2 text-sm font-medium text-zinc-800 shadow-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-              aria-expanded={filterMenuOpen}
-              aria-haspopup="true"
-              onClick={() => setFilterMenuOpen((o) => !o)}
-            >
-              <FilterFunnelIcon />
-              Filter
-            </button>
-            {filterMenuOpen ? (
-              <div
-                className="absolute right-0 z-30 mt-2 w-64 rounded-xl border border-zinc-200 bg-white p-3 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
-                role="menu"
-              >
-                <label className="flex cursor-pointer items-start gap-2.5 text-sm text-zinc-800 dark:text-zinc-200">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400 dark:border-zinc-600"
-                    checked={includeOutside}
-                    onChange={(e) => setIncludeOutside(e.target.checked)}
-                  />
-                  <span>Include mics outside Toronto (~90&nbsp;min drive)</span>
-                </label>
-              </div>
-            ) : null}
-          </div>
+        <div className="mx-auto max-w-lg md:max-w-6xl">
+          <h1 className="text-lg font-bold leading-tight tracking-tight md:text-xl">
+            PocketMic
+          </h1>
+          <p className="mt-1 hidden max-w-md text-xs text-zinc-500 dark:text-zinc-400 md:block md:text-sm">
+            Listings from the community spreadsheet · defaults to today
+            (Toronto time)
+          </p>
         </div>
         {loadState?.status === 'ok' && loadState.loadWarnings.length > 0 ? (
           <div className="mx-auto mt-3 max-w-lg md:max-w-6xl">
@@ -179,107 +172,114 @@ export default function App() {
 
         {loadState?.status === 'ok' ? (
           <>
-            <section className="space-y-3" aria-label="Day and filters">
+            <section className="space-y-3" aria-label="Day, count, sort, and filters">
               <DayPicker
                 selectedDay={selectedDay}
                 todayToronto={todayToronto}
                 onChange={setSelectedDay}
               />
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 md:text-sm">
-                {dayMics.length} mic{dayMics.length === 1 ? '' : 's'} on{' '}
-                <strong>{weekdayName}</strong>
-                {selectedDay === todayToronto ? ' · sorted by start time' : null}
-                {geoPending ? (
-                  <span className="ml-1">· map pins loading…</span>
-                ) : null}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <p className="min-w-0 text-xs text-zinc-600 dark:text-zinc-400 md:text-sm">
+                  {dayMics.length} mic{dayMics.length === 1 ? '' : 's'} on{' '}
+                  <strong className="text-zinc-900 dark:text-zinc-100">
+                    {weekdayName}
+                  </strong>
+                </p>
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                  <label className="sr-only" htmlFor="mic-sort">
+                    Sort mics
+                  </label>
+                  <select
+                    id="mic-sort"
+                    value={sortMode}
+                    onChange={(e) =>
+                      setSortMode(e.target.value as SortMode)
+                    }
+                    className="rounded-lg border border-zinc-900/20 bg-white py-1.5 pl-2 pr-8 text-xs font-medium text-zinc-800 shadow-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 md:text-sm"
+                  >
+                    <option value="time">Earliest start</option>
+                    <option value="alpha">A–Z</option>
+                  </select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-900/20 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 shadow-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 md:py-2 md:text-sm"
+                      aria-expanded={filterMenuOpen}
+                      aria-haspopup="true"
+                      onClick={() => setFilterMenuOpen((o) => !o)}
+                    >
+                      <FilterFunnelIcon />
+                      Filter
+                    </button>
+                    {filterMenuOpen ? (
+                      <div
+                        className="absolute right-0 z-30 mt-2 w-64 rounded-xl border border-zinc-200 bg-white p-3 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                        role="menu"
+                      >
+                        <label className="flex cursor-pointer items-start gap-2.5 text-sm text-zinc-800 dark:text-zinc-200">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400 dark:border-zinc-600"
+                            checked={includeOutside}
+                            onChange={(e) =>
+                              setIncludeOutside(e.target.checked)
+                            }
+                          />
+                          <span>
+                            Include mics outside Toronto (~90&nbsp;min drive)
+                          </span>
+                        </label>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
             </section>
 
-            <div className="mt-5 md:hidden">
-              <div className="flex rounded-xl bg-zinc-200 p-1 dark:bg-zinc-800">
-                <button
-                  type="button"
-                  className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
-                    panel === 'list'
-                      ? 'bg-white text-zinc-900 shadow dark:bg-zinc-950 dark:text-zinc-50'
-                      : 'text-zinc-600 dark:text-zinc-400'
-                  }`}
-                  onClick={() => setPanel('list')}
-                >
-                  List
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
-                    panel === 'map'
-                      ? 'bg-white text-zinc-900 shadow dark:bg-zinc-950 dark:text-zinc-50'
-                      : 'text-zinc-600 dark:text-zinc-400'
-                  }`}
-                  onClick={() => setPanel('map')}
-                >
-                  Map
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-start">
-              <div
-                className={`space-y-6 ${panel === 'list' ? 'block' : 'hidden lg:block'}`}
-              >
-                {dayMics.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-900">
-                    <p className="text-base font-medium text-zinc-800 dark:text-zinc-100">
-                      Nothing listed for this day
-                    </p>
-                    <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                      Try another weekday — each day’s rows come from that day’s
-                      tab in the source spreadsheet.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {weeklyMics.length > 0 ? (
-                      <div>
-                        <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                          {primaryListHeading}
-                        </h2>
-                        <div className="space-y-3">
-                          {weeklyMics.map((mic, i) => (
-                            <MicCard key={mic.id} mic={mic} index={i} />
-                          ))}
-                        </div>
+            <div className="mt-5 space-y-6">
+              {dayMics.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="text-base font-medium text-zinc-800 dark:text-zinc-100">
+                    Nothing listed for this day
+                  </p>
+                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                    Try another weekday — each day’s rows come from that day’s
+                    tab in the source spreadsheet.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {weeklyMics.length > 0 ? (
+                    <div>
+                      <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        {primaryListHeading}
+                      </h2>
+                      <div className="space-y-3">
+                        {sortedWeeklyMics.map((mic) => (
+                          <MicCard key={mic.id} mic={mic} />
+                        ))}
                       </div>
-                    ) : null}
+                    </div>
+                  ) : null}
 
-                    {futureMics.length > 0 ? (
-                      <div>
-                        <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                          Future mic
-                        </h2>
-                        <div className="space-y-3">
-                          {futureMics.map((mic, i) => (
-                            <MicCard
-                              key={mic.id}
-                              mic={mic}
-                              index={weeklyMics.length + i}
-                              dateQualifier={formatMicEventDateLabel(mic, todayYmd)}
-                            />
-                          ))}
-                        </div>
+                  {futureMics.length > 0 ? (
+                    <div>
+                      <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        Specific {weekdayName} mics
+                      </h2>
+                      <div className="space-y-3">
+                        {sortedFutureMics.map((mic) => (
+                          <MicCard
+                            key={mic.id}
+                            mic={mic}
+                            dateQualifier={formatMicEventDateLabel(mic, todayYmd)}
+                          />
+                        ))}
                       </div>
-                    ) : null}
-                  </>
-                )}
-              </div>
-
-              <div
-                className={`lg:sticky lg:top-6 ${panel === 'map' ? 'block' : 'hidden lg:block'}`}
-              >
-                <MicMap mics={dayMics} coordsById={coordsById} />
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
-                  Pins use venue addresses (OpenStreetMap, cached on device).
-                </p>
-              </div>
+                    </div>
+                  ) : null}
+                </>
+              )}
             </div>
           </>
         ) : null}

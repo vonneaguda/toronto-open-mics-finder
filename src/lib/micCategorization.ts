@@ -2,9 +2,9 @@ import type { Mic } from './normalize'
 import { getTorontoTodayYmd } from './torontoTime'
 
 export interface CategorizedMics {
-  /** Weekly / recurring mics for this weekday, plus one-offs happening today or undated */
+  /** Weekly / recurring + same-day one-offs (shown under “Today’s {weekday} mics” or “{weekday} mics”) */
   weeklyMics: Mic[]
-  /** Dated one-offs on this weekday whose calendar date is after today (Toronto) */
+  /** Dated one-offs after today (shown under “Specific {weekday} mics”) */
   futureMics: Mic[]
 }
 
