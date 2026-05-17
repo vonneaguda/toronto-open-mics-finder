@@ -146,7 +146,7 @@ export default function App() {
       : `${weekdayName} mics`
 
   return (
-    <div className="min-h-svh bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
+    <div className="min-h-svh overflow-x-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
       <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 px-4 py-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
         <div className="mx-auto max-w-lg md:max-w-6xl">
           <h1 className="text-lg font-bold leading-tight tracking-tight md:text-xl">
@@ -206,7 +206,7 @@ export default function App() {
                 todayToronto={todayToronto}
                 onChange={setSelectedDay}
               />
-              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-3 sm:gap-y-2">
                 <p className="min-w-0 text-xs text-zinc-600 dark:text-zinc-400 md:text-sm">
                   {hasDetailFilters ? (
                     <>
@@ -223,7 +223,7 @@ export default function App() {
                     {weekdayName}
                   </strong>
                 </p>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:justify-end">
                   <label className="sr-only" htmlFor="mic-sort">
                     Sort mics
                   </label>
@@ -233,15 +233,15 @@ export default function App() {
                     onChange={(e) =>
                       setSortMode(e.target.value as SortMode)
                     }
-                    className="rounded-lg border border-zinc-900/20 bg-white py-1.5 pl-2 pr-8 text-xs font-medium text-zinc-800 shadow-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 md:text-sm"
+                    className="min-w-0 w-full rounded-lg border border-zinc-900/20 bg-white py-1.5 pl-2 pr-8 text-xs font-medium text-zinc-800 shadow-sm sm:w-auto dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 md:text-sm"
                   >
                     <option value="time">Earliest start</option>
                     <option value="alpha">A–Z</option>
                   </select>
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <button
                       type="button"
-                      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium shadow-sm md:py-2 md:text-sm ${
+                      className={`inline-flex w-full items-center justify-start gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium shadow-sm sm:w-auto md:py-2 md:text-sm ${
                         hasDetailFilters
                           ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
                           : 'border-zinc-900/20 bg-white text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100'
@@ -252,15 +252,20 @@ export default function App() {
                     >
                       <FilterFunnelIcon />
                       Filter
-                      {hasDetailFilters ? (
-                        <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums dark:bg-zinc-900/20">
-                          {formatFilters.length + tagFilters.length}
-                        </span>
-                      ) : null}
+                      <span
+                        className={`ml-auto min-w-[1.125rem] rounded-full px-1.5 py-0.5 text-center text-[10px] font-semibold tabular-nums ${
+                          hasDetailFilters
+                            ? 'bg-white/20 dark:bg-zinc-900/20'
+                            : 'invisible'
+                        }`}
+                        aria-hidden={!hasDetailFilters}
+                      >
+                        {formatFilters.length + tagFilters.length || 0}
+                      </span>
                     </button>
                     {filterMenuOpen ? (
                       <div
-                        className="absolute right-0 z-30 mt-2 max-h-[min(70vh,28rem)] w-72 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-3 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                        className="absolute right-0 z-30 mt-2 max-h-[min(70vh,28rem)] w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-3 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
                         role="menu"
                         onClick={(e) => e.stopPropagation()}
                       >
