@@ -50,6 +50,31 @@ function linkLabel(url: string): string {
   }
 }
 
+function AccordionChevron({
+  className,
+  expanded,
+}: {
+  className?: string
+  expanded: boolean
+}) {
+  return (
+    <svg
+      className={`shrink-0 text-zinc-500 transition-transform duration-200 dark:text-zinc-400 ${expanded ? 'rotate-180' : ''} ${className ?? ''}`}
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  )
+}
+
 function ListIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -249,8 +274,9 @@ export function MicCard({ mic, dateQualifier }: Props) {
         onClick={() => setExpanded((e) => !e)}
       >
         <div className="min-w-0 flex-1">
-          <h3 className="text-[15px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50">
-            {title}
+          <h3 className="flex items-center gap-1.5 text-[15px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50">
+            <span className="min-w-0">{title}</span>
+            <AccordionChevron expanded={expanded} />
           </h3>
           <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
             {mic.venueName}

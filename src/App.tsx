@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { DayPicker } from './components/DayPicker'
 import { MicCard } from './components/MicCard'
+import { SHEET_SPREADSHEET_URL } from './config/sheet'
 import { loadOpenMics } from './lib/fetchSheet'
 import { micMatchesDay } from './lib/normalize'
 import type { Mic } from './lib/normalize'
@@ -418,8 +419,19 @@ export default function App() {
         ) : null}
       </main>
 
-      <footer className="border-t border-zinc-200 px-4 py-6 text-center text-xs text-zinc-500 dark:border-zinc-800 md:px-8">
-        Data © contributors — public community spreadsheet.
+      <footer className="border-t border-zinc-200 px-4 py-6 text-center text-xs leading-relaxed text-zinc-400 dark:border-zinc-800 dark:text-zinc-500 md:px-8">
+        <p>Put together by Vonne Aguda</p>
+        <p className="mt-1">
+          Using data from Erick Daniel&apos;s{' '}
+          <a
+            href={SHEET_SPREADSHEET_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-zinc-300 underline-offset-2 transition hover:text-zinc-600 dark:decoration-zinc-600 dark:hover:text-zinc-400"
+          >
+            community sheet
+          </a>
+        </p>
       </footer>
 
       {filterMenuOpen ? (

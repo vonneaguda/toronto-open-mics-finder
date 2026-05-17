@@ -3,6 +3,9 @@ export const SHEET_SPREADSHEET_ID =
   import.meta.env.VITE_SHEET_ID ??
   '1r6nfVJGDuZGAIUHmk_tEwiKLtc27Z8A9KK-kn2Plkqo'
 
+/** Browser link to the community spreadsheet */
+export const SHEET_SPREADSHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_SPREADSHEET_ID}/edit`
+
 /**
  * One CSV export per weekday tab. Labels and `gid`s match the sheet’s tab
  * switcher (see Google Sheets URL `#gid=` when each tab is selected).
