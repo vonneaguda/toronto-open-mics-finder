@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import type { Mic } from '../lib/normalize'
+import { parseMicDetails } from '../lib/parseMicDetails'
 
 function isInstagramUrl(url: string): boolean {
   try {
@@ -90,6 +91,68 @@ function BucketIcon({ className }: { className?: string }) {
   )
 }
 
+function MultiArtIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="7" cy="8" r="2" />
+      <circle cx="12" cy="6" r="2" />
+      <circle cx="17" cy="8" r="2" />
+      <path d="M5 18c1.5-2 3.5-3 7-3s5.5 1 7 3" />
+    </svg>
+  )
+}
+
+function BookedIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+      <path d="m9 15 2 2 4-4" />
+    </svg>
+  )
+}
+
+function SafeSpaceIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 3 4 7v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V7l-8-4z" />
+    </svg>
+  )
+}
+
 function RainbowIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -137,28 +200,6 @@ function InstagramGlyph({ className }: { className?: string }) {
   )
 }
 
-function extractFormat(notes: string): 'list' | 'bucket' | null {
-  if (!notes) return null
-  const lower = notes.toLowerCase()
-  if (
-    lower.includes('sign-up list') ||
-    lower.includes('sign up list') ||
-    /\blist\b/.test(lower) ||
-    lower.includes('lottery')
-  ) {
-    if (lower.includes('bucket')) return 'bucket'
-    return 'list'
-  }
-  if (
-    lower.includes('bucket') ||
-    lower.includes('draw') ||
-    lower.includes('random order')
-  ) {
-    return 'bucket'
-  }
-  return null
-}
-
 function producerParts(name: string): string[] {
   return name
     .split(/[,/&\n]+/g)
@@ -186,11 +227,8 @@ export function MicCard({ mic, dateQualifier }: Props) {
 
   const dest = directionsDestination(mic)
   const canDirections = Boolean(dest)
-  const format = extractFormat(mic.extraNotes)
+  const { format, tags } = parseMicDetails(mic.extraNotes, mic.showName)
   const producers = producerParts(mic.producerName)
-  const lgbtqPriority = /\b(lgbtq?|2slgbtq|queer|pride)\b/i.test(
-    mic.extraNotes ?? '',
-  )
 
   const title =
     dateQualifier && dateQualifier.length > 0
@@ -215,22 +253,40 @@ export function MicCard({ mic, dateQualifier }: Props) {
           </p>
 
           <div className="mt-2 flex flex-wrap gap-2">
-            {format === 'list' ? (
+            {format === 'List' ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-zinc-900/20 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200">
                 <ListIcon className="opacity-70" />
                 List
               </span>
             ) : null}
-            {format === 'bucket' ? (
+            {format === 'Bucket' ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-zinc-900/20 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200">
                 <BucketIcon className="opacity-70" />
                 Bucket
               </span>
             ) : null}
-            {lgbtqPriority ? (
+            {tags.includes('LGBTQIA+') ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-zinc-900/20 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200">
                 <RainbowIcon />
-                LGBTQ+ priority
+                LGBTQIA+
+              </span>
+            ) : null}
+            {tags.includes('Safe Space') ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-900/20 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200">
+                <SafeSpaceIcon className="opacity-70" />
+                Safe Space
+              </span>
+            ) : null}
+            {tags.includes('Booked') ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-900/20 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200">
+                <BookedIcon className="opacity-70" />
+                Booked
+              </span>
+            ) : null}
+            {tags.includes('Multi-art') ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-zinc-900/20 bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200">
+                <MultiArtIcon className="opacity-70" />
+                Multi-art
               </span>
             ) : null}
           </div>

@@ -9,6 +9,14 @@ import {
   formatMicEventDateLabel,
 } from './lib/micCategorization'
 import { getTorontoTodayYmd, getTorontoWeekdayNow } from './lib/torontoTime'
+import {
+  MIC_FORMAT_FILTERS,
+  MIC_TAG_FILTERS,
+  micMatchesDetailFilters,
+  parseMicDetailsForMic,
+  type MicFormatFilter,
+  type MicTagFilter,
+} from './lib/parseMicDetails'
 
 function torontoMetroFilter(mic: Mic, includeOutside: boolean): boolean {
   if (includeOutside) return true
@@ -35,6 +43,12 @@ function FilterFunnelIcon({ className }: { className?: string }) {
 }
 
 type SortMode = 'time' | 'alpha'
+
+function toggleFilter<T extends string>(selected: T[], value: T): T[] {
+  return selected.includes(value)
+    ? selected.filter((v) => v !== value)
+    : [...selected, value]
+}
 
 function sortMicList(mics: Mic[], mode: SortMode): Mic[] {
   const copy = [...mics]
@@ -65,6 +79,8 @@ export default function App() {
   const [includeOutside, setIncludeOutside] = useState(false)
   const [filterMenuOpen, setFilterMenuOpen] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('time')
+  const [formatFilters, setFormatFilters] = useState<MicFormatFilter[]>([])
+  const [tagFilters, setTagFilters] = useState<MicTagFilter[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -88,9 +104,20 @@ export default function App() {
     )
   }, [allMics, selectedDay, includeOutside])
 
+  const hasDetailFilters =
+    formatFilters.length > 0 || tagFilters.length > 0
+
+  const filteredDayMics = useMemo(() => {
+    if (!hasDetailFilters) return dayMics
+    return dayMics.filter((mic) => {
+      const details = parseMicDetailsForMic(mic)
+      return micMatchesDetailFilters(details, formatFilters, tagFilters)
+    })
+  }, [dayMics, formatFilters, tagFilters, hasDetailFilters])
+
   const { weeklyMics, futureMics } = useMemo(() => {
-    return categorizeMics(dayMics, todayYmd)
-  }, [dayMics, todayYmd])
+    return categorizeMics(filteredDayMics, todayYmd)
+  }, [filteredDayMics, todayYmd])
 
   const sortedWeeklyMics = useMemo(
     () => sortMicList(weeklyMics, sortMode),
@@ -180,7 +207,17 @@ export default function App() {
               />
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                 <p className="min-w-0 text-xs text-zinc-600 dark:text-zinc-400 md:text-sm">
-                  {dayMics.length} mic{dayMics.length === 1 ? '' : 's'} on{' '}
+                  {hasDetailFilters ? (
+                    <>
+                      {filteredDayMics.length} of {dayMics.length} mic
+                      {dayMics.length === 1 ? '' : 's'}
+                    </>
+                  ) : (
+                    <>
+                      {dayMics.length} mic{dayMics.length === 1 ? '' : 's'}
+                    </>
+                  )}{' '}
+                  on{' '}
                   <strong className="text-zinc-900 dark:text-zinc-100">
                     {weekdayName}
                   </strong>
@@ -203,23 +240,36 @@ export default function App() {
                   <div className="relative">
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-900/20 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 shadow-sm dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 md:py-2 md:text-sm"
+                      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium shadow-sm md:py-2 md:text-sm ${
+                        hasDetailFilters
+                          ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                          : 'border-zinc-900/20 bg-white text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100'
+                      }`}
                       aria-expanded={filterMenuOpen}
                       aria-haspopup="true"
                       onClick={() => setFilterMenuOpen((o) => !o)}
                     >
                       <FilterFunnelIcon />
                       Filter
+                      {hasDetailFilters ? (
+                        <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums dark:bg-zinc-900/20">
+                          {formatFilters.length + tagFilters.length}
+                        </span>
+                      ) : null}
                     </button>
                     {filterMenuOpen ? (
                       <div
-                        className="absolute right-0 z-30 mt-2 w-64 rounded-xl border border-zinc-200 bg-white p-3 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                        className="absolute right-0 z-30 mt-2 max-h-[min(70vh,28rem)] w-72 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-3 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
                         role="menu"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <label className="flex cursor-pointer items-start gap-2.5 text-sm text-zinc-800 dark:text-zinc-200">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                          Region
+                        </p>
+                        <label className="mt-2 flex cursor-pointer items-start gap-2.5 text-sm text-zinc-800 dark:text-zinc-200">
                           <input
                             type="checkbox"
-                            className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400 dark:border-zinc-600"
+                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400 dark:border-zinc-600"
                             checked={includeOutside}
                             onChange={(e) =>
                               setIncludeOutside(e.target.checked)
@@ -229,6 +279,67 @@ export default function App() {
                             Include mics outside Toronto (~90&nbsp;min drive)
                           </span>
                         </label>
+
+                        <p className="mt-4 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                          Sign-up format
+                        </p>
+                        <div className="mt-2 space-y-2">
+                          {MIC_FORMAT_FILTERS.map((format) => (
+                            <label
+                              key={format}
+                              className="flex cursor-pointer items-center gap-2.5 text-sm text-zinc-800 dark:text-zinc-200"
+                            >
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400 dark:border-zinc-600"
+                                checked={formatFilters.includes(format)}
+                                onChange={() =>
+                                  setFormatFilters((prev) =>
+                                    toggleFilter(prev, format),
+                                  )
+                                }
+                              />
+                              <span>{format}</span>
+                            </label>
+                          ))}
+                        </div>
+
+                        <p className="mt-4 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                          Tags
+                        </p>
+                        <div className="mt-2 space-y-2">
+                          {MIC_TAG_FILTERS.map((tag) => (
+                            <label
+                              key={tag}
+                              className="flex cursor-pointer items-center gap-2.5 text-sm text-zinc-800 dark:text-zinc-200"
+                            >
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 shrink-0 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-400 dark:border-zinc-600"
+                                checked={tagFilters.includes(tag)}
+                                onChange={() =>
+                                  setTagFilters((prev) =>
+                                    toggleFilter(prev, tag),
+                                  )
+                                }
+                              />
+                              <span>{tag}</span>
+                            </label>
+                          ))}
+                        </div>
+
+                        {hasDetailFilters ? (
+                          <button
+                            type="button"
+                            className="mt-4 w-full rounded-lg border border-zinc-900/15 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                            onClick={() => {
+                              setFormatFilters([])
+                              setTagFilters([])
+                            }}
+                          >
+                            Clear format &amp; tag filters
+                          </button>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -246,6 +357,25 @@ export default function App() {
                     Try another weekday — each day’s rows come from that day’s
                     tab in the source spreadsheet.
                   </p>
+                </div>
+              ) : filteredDayMics.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="text-base font-medium text-zinc-800 dark:text-zinc-100">
+                    No mics match your filters
+                  </p>
+                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                    Try clearing format or tag filters, or pick a different day.
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-4 rounded-lg border border-zinc-900/20 bg-white px-4 py-2 text-sm font-medium text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-200"
+                    onClick={() => {
+                      setFormatFilters([])
+                      setTagFilters([])
+                    }}
+                  >
+                    Clear format &amp; tag filters
+                  </button>
                 </div>
               ) : (
                 <>
