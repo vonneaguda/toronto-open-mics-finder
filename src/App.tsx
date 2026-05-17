@@ -402,7 +402,10 @@ export default function App() {
                           <MicCard
                             key={mic.id}
                             mic={mic}
-                            dateQualifier={formatMicEventDateLabel(mic, todayYmd)}
+                            dateQualifier={formatMicEventDateLabel(
+                              mic,
+                              todayYmd,
+                            )}
                           />
                         ))}
                       </div>

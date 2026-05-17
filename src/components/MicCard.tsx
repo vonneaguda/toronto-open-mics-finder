@@ -227,7 +227,11 @@ export function MicCard({ mic, dateQualifier }: Props) {
 
   const dest = directionsDestination(mic)
   const canDirections = Boolean(dest)
-  const { format, tags } = parseMicDetails(mic.extraNotes, mic.showName)
+  const { format, tags } = parseMicDetails(
+    mic.extraNotes,
+    mic.showName,
+    mic.signUpTime,
+  )
   const producers = producerParts(mic.producerName)
 
   const title =
@@ -379,7 +383,7 @@ export function MicCard({ mic, dateQualifier }: Props) {
               href={googleMapsDirectionsHref(dest)}
               target="_blank"
               rel="noopener noreferrer"
-              className="-mx-4 mt-3 flex w-[calc(100%+2rem)] max-w-none items-center justify-center rounded-xl border border-zinc-900/25 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-800/80"
+              className="mt-3 flex w-full items-center justify-center rounded-xl border border-zinc-900/25 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-800/80"
             >
               Directions
             </a>

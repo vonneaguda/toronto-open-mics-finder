@@ -74,40 +74,34 @@ const MULTI_ART_PHRASE_PATTERNS: RegExp[] = [
   /\b(comedy|music|poetry)\b[^.]{0,80}\b(and more|etc\.?)\b/i,
 ]
 
-/** One regex per art discipline; tag when two or more match. */
-const ART_FORM_CATEGORIES: RegExp[] = [
-  /\bcomedy\b/i,
-  /\bcomics?\b/i,
-  /\bmusic\b/i,
-  /\bmusicians?\b/i,
-  /\bacoustic\b/i,
-  /\bsingers?\b/i,
-  /\bpoetry\b/i,
-  /\bpoets?\b/i,
-  /\bspoken[\s-]?word\b/i,
-  /\bstorytelling\b/i,
-  /\bdance\b/i,
-  /\bdancers?\b/i,
-  /\bmagic\b/i,
-  /\bmagicians?\b/i,
-  /\bimprov\b/i,
-  /\bburlesque\b/i,
-  /\bdrag\b/i,
-]
+const COMEDY_DISCIPLINE_RE =
+  /\b(comedy|comics?|stand[\s-]?up|improv|crowdwork)\b/i
+const MUSIC_DISCIPLINE_RE =
+  /\b(music|musicians?|acoustic|singers?)\b/i
+const POETRY_DISCIPLINE_RE = /\b(poetry|poets?|spoken[\s-]?word)\b/i
+const STORYTELLING_DISCIPLINE_RE = /\bstorytelling\b/i
+const DANCE_DISCIPLINE_RE = /\b(dance|dancers?)\b/i
+const MAGIC_DISCIPLINE_RE = /\b(magic|magicians?)\b/i
+const BURLESQUE_DISCIPLINE_RE = /\bburlesque\b/i
+const DRAG_DISCIPLINE_RE = /\bdrag\b/i
 
 function matchesAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((re) => re.test(text))
 }
 
+/** Distinct performing-arts disciplines; comedy sub-styles (e.g. storytelling) don't add a second. */
 function hasMultipleArtForms(text: string): boolean {
   let count = 0
-  for (const re of ART_FORM_CATEGORIES) {
-    if (re.test(text)) {
-      count += 1
-      if (count >= 2) return true
-    }
-  }
-  return false
+  const hasComedy = COMEDY_DISCIPLINE_RE.test(text)
+  if (hasComedy) count += 1
+  if (MUSIC_DISCIPLINE_RE.test(text)) count += 1
+  if (POETRY_DISCIPLINE_RE.test(text)) count += 1
+  if (STORYTELLING_DISCIPLINE_RE.test(text) && !hasComedy) count += 1
+  if (DANCE_DISCIPLINE_RE.test(text)) count += 1
+  if (MAGIC_DISCIPLINE_RE.test(text)) count += 1
+  if (BURLESQUE_DISCIPLINE_RE.test(text)) count += 1
+  if (DRAG_DISCIPLINE_RE.test(text)) count += 1
+  return count >= 2
 }
 
 function isMultiArtOpenMic(text: string): boolean {
@@ -119,20 +113,22 @@ function isMultiArtOpenMic(text: string): boolean {
 function combineMicText(
   description: string | null | undefined,
   title?: string | null | undefined,
+  signUpTime?: string | null | undefined,
 ): string | null {
-  const parts = [title, description]
+  const parts = [title, signUpTime, description]
     .filter((s): s is string => s != null && s.trim() !== '')
     .map((s) => s.trim())
   if (parts.length === 0) return null
   return parts.join('\n')
 }
 
-/** Parse format/tags from mic notes and optional show title. */
+/** Parse format/tags from notes, show title, and sign-up time. */
 export function parseMicDetails(
   description: string | null | undefined,
   title?: string | null | undefined,
+  signUpTime?: string | null | undefined,
 ): MicDetails {
-  const text = combineMicText(description, title)
+  const text = combineMicText(description, title, signUpTime)
   if (text == null) {
     return { format: 'Unknown', tags: [] }
   }
@@ -166,8 +162,9 @@ export function parseMicDetails(
 export function parseMicDetailsForMic(mic: {
   extraNotes: string
   showName: string
+  signUpTime: string
 }): MicDetails {
-  return parseMicDetails(mic.extraNotes, mic.showName)
+  return parseMicDetails(mic.extraNotes, mic.showName, mic.signUpTime)
 }
 
 /** AND across format vs tag groups; OR within each group when multiple are selected. */
@@ -195,6 +192,7 @@ export function micMatchesDetailFilters(
 export const PARSE_MIC_DETAILS_TESTS: ReadonlyArray<{
   input: string | null | undefined
   title?: string | null | undefined
+  signUpTime?: string | null | undefined
   expected: MicDetails
 }> = [
   {
@@ -288,6 +286,17 @@ export const PARSE_MIC_DETAILS_TESTS: ReadonlyArray<{
     expected: { format: 'Bucket', tags: ['Booked'] },
   },
   {
+    input: '',
+    title: 'Backroom Showcase',
+    signUpTime: 'booked',
+    expected: { format: 'List', tags: ['Booked'] },
+  },
+  {
+    input: 'Weekly showcase.',
+    signUpTime: 'Booked',
+    expected: { format: 'List', tags: ['Booked'] },
+  },
+  {
     input: 'Performers of all kind welcome (comedy, music, etc).',
     expected: { format: 'Unknown', tags: ['Multi-art'] },
   },
@@ -298,5 +307,11 @@ export const PARSE_MIC_DETAILS_TESTS: ReadonlyArray<{
   {
     input: 'Stand-up comedy open mic. 5 minute sets.',
     expected: { format: 'Unknown', tags: [] },
+  },
+  {
+    input:
+      'Bucket show. Comic spins wheel and does riff/storytelling/crowdwork and mystery challenges.',
+    title: 'Wheel Of Comedy',
+    expected: { format: 'Bucket', tags: [] },
   },
 ]
