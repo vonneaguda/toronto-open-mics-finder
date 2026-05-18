@@ -236,9 +236,11 @@ type Props = {
   mic: Mic
   /** Shown after title, e.g. May 24 — for dated future mics */
   dateQualifier?: string | null
+  /** Calendar date(s) for this mic have all passed — show dimmed */
+  isPastEvent?: boolean
 }
 
-export function MicCard({ mic, dateQualifier }: Props) {
+export function MicCard({ mic, dateQualifier, isPastEvent }: Props) {
   const [expanded, setExpanded] = useState(false)
   const panelId = useId()
 
@@ -265,7 +267,12 @@ export function MicCard({ mic, dateQualifier }: Props) {
       : mic.showName
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-zinc-900/15 bg-zinc-100 text-left dark:border-zinc-600 dark:bg-zinc-900/80">
+    <article
+      className={[
+        'overflow-hidden rounded-2xl border border-zinc-900/15 bg-zinc-100 text-left dark:border-zinc-600 dark:bg-zinc-900/80',
+        isPastEvent ? 'opacity-50' : '',
+      ].join(' ')}
+    >
       <button
         type="button"
         className="flex w-full items-start gap-4 p-4 text-left transition hover:bg-zinc-200/60 dark:hover:bg-zinc-800/80"

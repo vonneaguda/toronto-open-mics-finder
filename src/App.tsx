@@ -8,6 +8,7 @@ import type { Mic } from './lib/normalize'
 import {
   categorizeMics,
   formatMicEventDateLabel,
+  isPastDatedMic,
 } from './lib/micCategorization'
 import { getTorontoTodayYmd, getTorontoWeekdayNow } from './lib/torontoTime'
 import {
@@ -51,23 +52,30 @@ function toggleFilter<T extends string>(selected: T[], value: T): T[] {
     : [...selected, value]
 }
 
-function sortMicList(mics: Mic[], mode: SortMode): Mic[] {
-  const copy = [...mics]
+function compareMics(a: Mic, b: Mic, mode: SortMode): number {
   if (mode === 'alpha') {
-    copy.sort((a, b) =>
-      a.showName.localeCompare(b.showName, undefined, { sensitivity: 'base' }),
-    )
-  } else {
-    copy.sort((a, b) => {
-      const ta = a.sortMinutes ?? Infinity
-      const tb = b.sortMinutes ?? Infinity
-      if (ta !== tb) return ta - tb
-      return a.showName.localeCompare(b.showName, undefined, {
-        sensitivity: 'base',
-      })
+    return a.showName.localeCompare(b.showName, undefined, {
+      sensitivity: 'base',
     })
   }
-  return copy
+  const ta = a.sortMinutes ?? Infinity
+  const tb = b.sortMinutes ?? Infinity
+  if (ta !== tb) return ta - tb
+  return a.showName.localeCompare(b.showName, undefined, {
+    sensitivity: 'base',
+  })
+}
+
+function sortMicList(mics: Mic[], mode: SortMode, todayYmd: number): Mic[] {
+  const active: Mic[] = []
+  const past: Mic[] = []
+  for (const mic of mics) {
+    if (isPastDatedMic(mic, todayYmd)) past.push(mic)
+    else active.push(mic)
+  }
+  active.sort((a, b) => compareMics(a, b, mode))
+  past.sort((a, b) => compareMics(a, b, mode))
+  return [...active, ...past]
 }
 
 export default function App() {
@@ -121,12 +129,12 @@ export default function App() {
   }, [filteredDayMics, todayYmd])
 
   const sortedWeeklyMics = useMemo(
-    () => sortMicList(weeklyMics, sortMode),
-    [weeklyMics, sortMode],
+    () => sortMicList(weeklyMics, sortMode, todayYmd),
+    [weeklyMics, sortMode, todayYmd],
   )
   const sortedFutureMics = useMemo(
-    () => sortMicList(futureMics, sortMode),
-    [futureMics, sortMode],
+    () => sortMicList(futureMics, sortMode, todayYmd),
+    [futureMics, sortMode, todayYmd],
   )
 
   const weekdayName =
@@ -391,9 +399,21 @@ export default function App() {
                         {primaryListHeading}
                       </h2>
                       <div className="space-y-3">
-                        {sortedWeeklyMics.map((mic) => (
-                          <MicCard key={mic.id} mic={mic} />
-                        ))}
+                        {sortedWeeklyMics.map((mic) => {
+                          const past = isPastDatedMic(mic, todayYmd)
+                          return (
+                            <MicCard
+                              key={mic.id}
+                              mic={mic}
+                              dateQualifier={
+                                past
+                                  ? formatMicEventDateLabel(mic, todayYmd)
+                                  : null
+                              }
+                              isPastEvent={past}
+                            />
+                          )
+                        })}
                       </div>
                     </div>
                   ) : null}

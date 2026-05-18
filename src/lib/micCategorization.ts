@@ -4,7 +4,7 @@ import { getTorontoTodayYmd } from './torontoTime'
 export interface CategorizedMics {
   /** Weekly / recurring + same-day one-offs (shown under “Today’s {weekday} mics” or “{weekday} mics”) */
   weeklyMics: Mic[]
-  /** Dated one-offs with at least one upcoming date */
+  /** One-offs with upcoming explicit calendar date(s) in the sheet year */
   futureMics: Mic[]
 }
 
@@ -54,6 +54,12 @@ const MONTH_NAMES = [
 const MONTH_DAY_ANCHOR_RE =
   /\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)\s+(\d{1,2})(?:st|nd|rd|th)?\b/gi
 
+const DAY_OF_MONTH_RE =
+  /\b(\d{1,2})(?:st|nd|rd|th)?\s+of\s+(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)\b/gi
+
+const DAY_MONTH_RE =
+  /\b(\d{1,2})(?:st|nd|rd|th)?\s+(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)\b/gi
+
 const TRAILING_DAY_ONLY_RE = /^\s*,\s*(\d{1,2})(?:st|nd|rd|th)?/
 
 type MonthDay = { month: number; day: number }
@@ -101,6 +107,16 @@ export function parseAllMonthDaysFromText(text: string): MonthDay[] {
       const b = parseInt(slash[2], 10)
       if (a >= 1 && a <= 12 && b >= 1 && b <= 31) {
         add(a, b)
+      }
+    }
+
+    for (const re of [DAY_OF_MONTH_RE, DAY_MONTH_RE]) {
+      re.lastIndex = 0
+      let dm: RegExpExecArray | null
+      while ((dm = re.exec(fragment)) !== null) {
+        const day = parseInt(dm[1], 10)
+        const month = MONTH_WORD[dm[2].toLowerCase()]
+        if (month) add(month, day)
       }
     }
   }
@@ -203,6 +219,25 @@ export function formatMicEventDateLabel(
  * Split mics for a selected weekday into weeklies vs dated future one-offs.
  * Callers should pass rows already filtered to the selected day.
  */
+function micScheduleBlob(mic: Mic): string {
+  return `${mic.frequencyRaw}\n${mic.extraNotes}`.toLowerCase()
+}
+
+/** True when every parsed calendar date for this mic is before today. */
+export function isPastDatedMic(mic: Mic, todayYmd: number): boolean {
+  if (!hasSpecificCalendarDates(mic)) return false
+  const ymds = parseMicEventYmds(mic, todayYmd)
+  return ymds.length > 0 && ymds.every((y) => y < todayYmd)
+}
+
+/** True when frequency/notes name explicit month+day date(s), not just "monthly" or "3rd Wednesday". */
+export function hasSpecificCalendarDates(mic: Mic): boolean {
+  const blob = micScheduleBlob(mic)
+  if (parseAllMonthDaysFromText(blob).length === 0) return false
+  if (isLikelyRecurringDespiteDate(blob)) return false
+  return true
+}
+
 export function categorizeMics(
   mics: Mic[],
   todayYmd: number = getTorontoTodayYmd(),
@@ -211,24 +246,23 @@ export function categorizeMics(
   const futureMics: Mic[] = []
 
   for (const mic of mics) {
+    if (hasSpecificCalendarDates(mic)) {
+      const ymds = parseMicEventYmds(mic, todayYmd)
+      const hasUpcoming = ymds.some((y) => y >= todayYmd)
+      if (hasUpcoming) {
+        futureMics.push(mic)
+      } else {
+        weeklyMics.push(mic)
+      }
+      continue
+    }
+
     if (isRecurringShow(mic)) {
       weeklyMics.push(mic)
       continue
     }
 
-    const ymds = parseMicEventYmds(mic, todayYmd)
-    if (ymds.length === 0) {
-      weeklyMics.push(mic)
-      continue
-    }
-
-    const upcoming = ymds.filter((y) => y >= todayYmd)
-    if (upcoming.length === 0) {
-      weeklyMics.push(mic)
-      continue
-    }
-
-    futureMics.push(mic)
+    weeklyMics.push(mic)
   }
 
   weeklyMics.sort(sortByTime)
@@ -238,7 +272,7 @@ export function categorizeMics(
 }
 
 function isRecurringShow(mic: Mic): boolean {
-  const lower = `${mic.frequencyRaw} ${mic.extraNotes}`.toLowerCase()
+  const lower = micScheduleBlob(mic)
 
   const oneOffKeywords = [
     'one night',
@@ -280,7 +314,7 @@ function isRecurringShow(mic: Mic): boolean {
 
   if (!mic.frequencyRaw.trim()) return true
 
-  return true
+  return false
 }
 
 /** e.g. "every Monday except May 24" — still recurring */
