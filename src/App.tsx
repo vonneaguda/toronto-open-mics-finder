@@ -399,21 +399,9 @@ export default function App() {
                         {primaryListHeading}
                       </h2>
                       <div className="space-y-3">
-                        {sortedWeeklyMics.map((mic) => {
-                          const past = isPastDatedMic(mic, todayYmd)
-                          return (
-                            <MicCard
-                              key={mic.id}
-                              mic={mic}
-                              dateQualifier={
-                                past
-                                  ? formatMicEventDateLabel(mic, todayYmd)
-                                  : null
-                              }
-                              isPastEvent={past}
-                            />
-                          )
-                        })}
+                        {sortedWeeklyMics.map((mic) => (
+                          <MicCard key={mic.id} mic={mic} />
+                        ))}
                       </div>
                     </div>
                   ) : null}
@@ -424,16 +412,20 @@ export default function App() {
                         Specific {weekdayName} mics
                       </h2>
                       <div className="space-y-3">
-                        {sortedFutureMics.map((mic) => (
-                          <MicCard
-                            key={mic.id}
-                            mic={mic}
-                            dateQualifier={formatMicEventDateLabel(
-                              mic,
-                              todayYmd,
-                            )}
-                          />
-                        ))}
+                        {sortedFutureMics.map((mic) => {
+                          const past = isPastDatedMic(mic, todayYmd)
+                          return (
+                            <MicCard
+                              key={mic.id}
+                              mic={mic}
+                              dateQualifier={formatMicEventDateLabel(
+                                mic,
+                                todayYmd,
+                              )}
+                              isPastEvent={past}
+                            />
+                          )
+                        })}
                       </div>
                     </div>
                   ) : null}

@@ -4,7 +4,7 @@ import { getTorontoTodayYmd } from './torontoTime'
 export interface CategorizedMics {
   /** Weekly / recurring + same-day one-offs (shown under “Today’s {weekday} mics” or “{weekday} mics”) */
   weeklyMics: Mic[]
-  /** One-offs with upcoming explicit calendar date(s) in the sheet year */
+  /** One-offs with explicit calendar date(s) in the sheet — includes past dates */
   futureMics: Mic[]
 }
 
@@ -247,13 +247,7 @@ export function categorizeMics(
 
   for (const mic of mics) {
     if (hasSpecificCalendarDates(mic)) {
-      const ymds = parseMicEventYmds(mic, todayYmd)
-      const hasUpcoming = ymds.some((y) => y >= todayYmd)
-      if (hasUpcoming) {
-        futureMics.push(mic)
-      } else {
-        weeklyMics.push(mic)
-      }
+      futureMics.push(mic)
       continue
     }
 
